@@ -1,0 +1,235 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script src="jquery-2.0.3.min.js"></script>
+		<style>
+			body{margin:0;border:0;padding:0;}
+			.bullet{width:3px;height:5px;background:red;position:absolute;}
+			.dj{background:green;position:absolute;}
+		</style>
+	</head>
+	<body>
+	</body>
+	<script>
+		// 一个初始化的方法
+		// 游戏状态
+		alert("点击黑色方块开始游戏，提示请看标题栏！");
+		var airplane = $("<div id='airplane' style='width:50px;height:50px;background:black;position:absolute;'></div>");
+		var bullet_new = $(".bullet_new");
+		var bullet = $(".bullet");
+		var state = 0;// 0 未开始 1 开始
+		var m_x
+		// 获得窗口的高度、宽度
+		var w_h = $(window).innerHeight();
+		var w_w = $(window).innerWidth();
+		// 获得飞机的高度、宽度
+		var a_h = airplane.height();
+		var a_w = airplane.width();
+		var speed = 300;// 导弹产生速度，产生时间
+		var b_speed = 8;// 导弹发射速度，移动距离
+		var dj_c_speed = 800;// 敌机创建的速度
+		var dj_m_speed = 1;// 敌机移动的速度
+		var time;
+		var dj_time;
+		var max_num = 3; // 最大能允许通过的敌机数
+		var num = 0;
+		var live = 5; // 消灭多少敌机能获得新的生命
+		var distory = 0;
+		document.title="生命：" + max_num + "消灭敌机数：" + distory;
+		// 游戏重启
+		function air_reload(){
+			// 初始化飞机位置的方法：底部，居中
+			var top = w_h - a_h;
+			var left = (w_w - a_w)/2;
+			airplane.css({"top":top+"px","left":left+"px"});
+			airplane.appendTo("body");
+		}
+
+		// 跟随鼠标移动的方法
+		function air_move(){
+			// 获取鼠标的X、Y
+			$(window).mousemove(function(e){
+				if(state==1){
+					var a_x = e.clientX;
+					var a_y = e.clientY;
+					// document.title=a_x+":"+a_y;
+					airplane.css({"top":a_y-0.5*a_h+"px","left":a_x-0.5*a_w+"px"})
+				}
+			})
+		}
+
+		// 创建子弹的方法
+		function creat_bullet(){
+			// 初始化子弹位置：飞机的前中部分
+			var new_obj=$("<div class='bullet'></div>");
+			var b_x = parseInt(airplane.css("left"))+(+0.5*airplane.width())-0.5*bullet.width();
+			var b_y = parseInt(airplane.css("top"));
+			new_obj.css({"top":b_y+"px","left":b_x+"px"}).appendTo("body");
+			// console.log(new_obj);
+			shooting(new_obj);
+		}
+
+		// 创建敌机
+		function creat_airplane(){
+			/* * * *
+			 * 敌机创建规则：
+			 *   从最顶端出现
+			 *	 匀速下降
+			 *	 遇到导弹，敌机消失
+			 *   遇到飞机，游戏结束
+			 * * * */
+			var new_obj=$("<div class='dj' style='width:30px;height:50px;'></div>");
+			var left = Math.random()*(w_w-new_obj.width());
+			var top = -new_obj.height();
+			new_obj.css({top:top+"px",left:left+"px"});
+			new_obj.appendTo("body");
+			go(new_obj);
+		}
+
+		// 发射子弹
+		function shooting(obj){
+			// 发射子弹的方法
+			var b_time = setInterval(function(){
+				if(state==1){
+					var top = obj.css("top");
+					top = parseInt(top)-b_speed;
+					obj.css("top",top+'px');
+					if(top<0){
+						obj.remove();
+						clearTimeout(b_time);
+					}
+				}
+			},1)
+		}
+
+		// 敌机出发
+		function go(obj){
+			var direction=1;
+			var b_time = setInterval(function(){
+				if(state==1){
+					var rad = parseInt(Math.random()*10);
+					if(rad>8){
+						direction *= -1;
+					}
+					// alert(direction);
+					var top = obj.css("top");
+					var dj_left = obj.css("left");
+					top = parseInt(top)+dj_m_speed;
+					left = parseInt(dj_left)+direction*dj_m_speed*4;
+					if(left>w_w-obj.width()){
+						direction = -1;
+						left = parseInt(dj_left)+direction*dj_m_speed*4;
+					}else if(left<0){
+						direction = 1;
+						left = parseInt(dj_left)+direction*dj_m_speed*4;
+					}
+					obj.css({"top":top+'px','left':left+"px"});
+					if(top>w_h){
+						obj.remove();
+						max_num--;
+						if(!max_num){
+							if(confirm("you loose!")){
+								window.location.reload();
+							}else{
+								window.location.reload();
+							}
+						}
+						clearTimeout(b_time);
+					}
+					if(is_kill(obj)){
+						if(confirm("你死了!")){
+							window.location.reload();
+						}else{
+							window.location.reload();
+						}
+					}
+					// 摧毁敌机
+					if(is_shooted(obj)){
+						document.title="生命：" + max_num + "消灭敌机数：" + distory;
+						obj.remove();
+						clearTimeout(b_time);
+					}
+				}
+			},10)
+		}
+
+		// 判断敌机是否触碰飞机
+		function is_kill(obj){
+			var x = parseInt(obj.css("left"));
+			var y = parseInt(obj.css("top"));
+			var w = obj.width();
+			var h = obj.height();
+			var a_x = parseInt(airplane.css("left"));
+			var a_y = parseInt(airplane.css("top"));
+			var a_w = airplane.width();
+			var a_h = airplane.height();
+			// console.log(x+":"+y+":"+w+":"+h+":"+a_x+":"+":"+a_y+":"+a_w+":"+a_h);
+			if(x<a_x+a_w && x>a_x-w && y<a_y+a_h && y>a_y-h){
+				return true;
+			}else{
+				return false;
+			}
+		}
+
+		// 判断子弹是否触碰敌机
+		function is_shooted(obj){
+			var x = parseInt(obj.css("left"));
+			var y = parseInt(obj.css("top"));
+			var w = obj.width();
+			var h = obj.height();
+			var is_s = 0;
+			var b=$(".bullet").each(function(i){
+			// for(var i in $(".bullet")){
+				var dj_x = parseInt($(".bullet").eq(i).css("left"));
+				var dj_y = parseInt($(".bullet").eq(i).css("top"));
+				var dj_w = $(".bullet").eq(i).width();
+				var dj_h = $(".bullet").eq(i).height();
+				if(x<dj_x+dj_w && x>dj_x-w && y<dj_y+dj_h && y>dj_y-h){
+					$(".bullet").eq(i).remove();
+					is_s=1;
+					distory++;
+					if(distory%live==0){
+						max_num++;
+						// document.title="生命：" + max_num + "消灭敌机数：" + distory;
+					}
+					return true;
+				}
+			// }
+			})
+			if(is_s==1){
+				return true;
+			}
+		}
+
+		// 开始游戏
+		function game_start(){
+			air_move();
+			time = setInterval(function(){
+				if(state==1)
+				creat_bullet();
+			},speed);
+			dj_time = setInterval(function(){
+				if(state==1)
+				creat_airplane();
+			},dj_c_speed)
+		}
+
+		// 暂停游戏
+		function game_stop(){
+			clearTimeout(time);
+			alert("游戏暂停");
+		}
+
+		// 点击飞机，开始游戏
+		airplane.click(function(){
+			if(state==0){
+				state=1;
+				game_start();
+			}else if(state==1){
+				state=0
+				game_stop();
+			}
+		})
+		air_reload();
+	</script>
+</html>
